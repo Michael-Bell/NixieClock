@@ -10,7 +10,19 @@
 
 #include <SparkFun_APDS9960.h>
 #define APDS9960_INT    3 // Needs to be an interrupt pin
+#include <FAB_LED.h>
 
+// Declare the LED protocol and the port
+ws2812b<D,2>  strip;
+
+// How many pixels to control
+const uint8_t numPixels = 1;
+
+// How bright the LEDs will be (max 255)
+const uint8_t maxBrightness = 16;
+
+// The pixel array to display
+grb  pixels[numPixels] = {};
 // uRTCLib rtc;
 uRTCLib rtc(0x68, 0x57);
 
@@ -121,8 +133,18 @@ void amPM(bool t){
   if(t) sr.setNoUpdate(0,HIGH);
   else sr.setNoUpdate(0,LOW);
 }
- 
+ void updateColors(char r, char g, char b)
+{
+  for(int i = 0; i < numPixels; i++)
+  {
+    pixels[i].r = r;
+    pixels[i].g = g;
+    pixels[i].b = b;
+  }
+}
 void setup() { 
+    strip.clear(2 * numPixels);
+
   pinMode(APDS9960_INT, INPUT);
   pinMode(BL,OUTPUT);
   digitalWrite(BL, HIGH);
@@ -133,40 +155,52 @@ void setup() {
     sr.setAllLow(); // set all pins LOW
   delay(500);
 //  attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
-if(apds.init() &&
-apds.setProximityGain(PGAIN_2X) &&  
-apds.enableProximitySensor(false) ) {
-  amPM(true);
-}
-else{
-  amPM(false);
-}
-
- sr.updateRegisters();
-tellTime(2);
 amPM(false);
+  if ( apds.init() ) {
+  } else {
+amPM(true);  }
+  
+  // Adjust the Proximity sensor gain
+  if ( !apds.setProximityGain(PGAIN_2X) ) {
+amPM(true);  }
+  
+  // Start running the APDS-9960 proximity sensor (no interrupts)
+  if ( apds.enableProximitySensor(false) ) {
+  } else {
+amPM(true);  }
+
  sr.updateRegisters();
 
 
 }
 int avProx=0;
 int lastreading = 0;
+
+
+int mapped;
+
 void loop() {
-//apds.readProximity(proximity_data);
-//if(proximity_data==255){
-//  amPM(true);
-//}
-//else{
-//  amPM(false);
-//}
-// sr.updateRegisters();
+  sr.setAllLow();
 
-// if((lastreading-50)>proximity_data) tellTime(2);
-//lastreading=proximity_data;
-tellTime(10);
-delay(10*1000);
+apds.readProximity(proximity_data);
+// r g b
+int r,g,b;
+r=0;g=0;b=0;
+mapped = map(proximity_data,0,255,0,10);
+if(mapped==10) g=30;
+updateColors(r,g,b);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+if((lastreading-5)>mapped) tellTime(2);
+ //writeD1((mapped)%10);
+//writeD2((mapped/10)%10);
+//if(proximity_data>249) amPM(true);
+//sr.updateRegisters();
+lastreading=mapped;
+delay(1000);
+//amPM(false);
+//tellTime(1);
 
-delay(500);
   }
 
 
@@ -181,13 +215,13 @@ rtc.refresh();
 
 writeD1(rtc.hour()%10);
 writeD2((rtc.hour()/10)%10);
-//amPM(false);
+amPM(false);
 sr.updateRegisters();
 delay(1000);
 sr.setAllLow();
 writeD1(rtc.minute()%10);
 writeD2((rtc.minute()/10)%10);
-//amPM(true);
+amPM(true);
 sr.updateRegisters();
 delay(1000);
 sr.setAllLow();
