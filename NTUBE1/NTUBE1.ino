@@ -13,7 +13,7 @@
 #include <FAB_LED.h>
 
 // Declare the LED protocol and the port
-ws2812b<D,2>  strip;
+sk6812<D,2>  strip;
 
 // How many pixels to control
 const uint8_t numPixels = 1;
@@ -86,7 +86,6 @@ switch (n){
   break;
   default:
   sr.setNoUpdate(20, HIGH);
-  break;
   }
   
 }
@@ -151,7 +150,7 @@ void setup() {
   pinMode(EN, OUTPUT);
   pinMode(POL,OUTPUT);
   digitalWrite(POL,HIGH);
-  digitalWrite(EN, HIGH);
+  digitalWrite(EN, LOW);
     sr.setAllLow(); // set all pins LOW
   delay(500);
 //  attachInterrupt(digitalPinToInterrupt(APDS9960_INT), interruptRoutine, FALLING);
@@ -169,6 +168,10 @@ amPM(true);  }
   } else {
 amPM(true);  }
 
+updateColors(5,20,50);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+delay(750);
  sr.updateRegisters();
 
 
@@ -178,28 +181,62 @@ int lastreading = 0;
 
 
 int mapped;
+int steps=0;
 
 void loop() {
-  sr.setAllLow();
 
 apds.readProximity(proximity_data);
 // r g b
 int r,g,b;
 r=0;g=0;b=0;
 mapped = map(proximity_data,0,255,0,10);
-if(mapped==10) g=30;
+
+if(mapped==10) steps++;
+
+if (steps==4) steps=0;
+
+
+switch(steps){ // set led color based on the step iteration
+  case 1:
+  g=25*mapped;
+  break;
+  case 2:
+  r = 25*mapped;
+  break;
+  case 3:
+  b = 25*mapped;
+  break;
+  default:
+  g=0;
+}
+
 updateColors(r,g,b);
 // Display the pixels on the LED strip
 strip.sendPixels(numPixels, pixels);
-if((lastreading-5)>mapped) tellTime(2);
- //writeD1((mapped)%10);
-//writeD2((mapped/10)%10);
-//if(proximity_data>249) amPM(true);
-//sr.updateRegisters();
+
+if((lastreading-5)>mapped) switch(steps){
+    case 1: // display time twice
+    tellTime(2);
+        steps=0;
+    //g=0;
+    break;
+    case 2:
+    steps=0;
+   // g=0;
+    nuke(2); // run through all digits rapidly
+    break;
+    default:
+    g=0;
+  }
+
+if(mapped<6 && steps==3) { // if no hand is in front and steps has iterated to the third tell the time 
+  tellTime(1);
+}
+
+
 lastreading=mapped;
 delay(1000);
-//amPM(false);
-//tellTime(1);
+
 
   }
 
@@ -207,7 +244,7 @@ delay(1000);
 int num = 0;
 bool toggle = false;
 void tellTime(int l) {
-
+sr.setAllLow();
 digitalWrite(EN,HIGH);  
 for(int i=0; i<=l ; i++){
 
@@ -228,3 +265,18 @@ sr.setAllLow();
 }
 digitalWrite(EN,LOW);
 }
+
+void nuke(int iterations){
+  digitalWrite(EN,HIGH);
+  for(int x=0;x<=iterations;x++){
+    for(int i=0; i<10; i++){
+        sr.setAllLow();
+        writeD1(i);
+        writeD2(9-i);
+        sr.updateRegisters();
+        delay(250);
+    }
+  }
+digitalWrite(EN,LOW);
+}
+
