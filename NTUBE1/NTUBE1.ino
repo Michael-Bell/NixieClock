@@ -206,7 +206,10 @@ if(mapped==10) {
   steps++;
 resettime++;
 }
-else(resettime=0;)
+else(resettime=0;
+digitalWrite(EN,LOW);  
+
+  )
 if (steps==4) steps=0;
 
 
@@ -223,12 +226,12 @@ switch(steps){ // set led color based on the step iteration
   default:
   g=0;
 }
-
+// TODO increment hour if still holding after time reset...
 updateColors(r,g,b);
 // Display the pixels on the LED strip
 strip.sendPixels(numPixels, pixels);
 
-if(resettime>12){
+if(resettime>12 && resettime<24){
   updateColors(255,255,0);
 // Display the pixels on the LED strip
 strip.sendPixels(numPixels, pixels);
@@ -241,12 +244,25 @@ delay(750);
 // Display the pixels on the LED strip
 strip.sendPixels(numPixels, pixels);
 }
-if(resettime==24){
-  resettime=0;
-  steps=0;
-    rtc.set(0, 00, 12, 6, 2, 5, 18);
-tellTime(1);
+if(resettime>=24){
+
+  updateColors(75,65,55);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+  digitalWrite(EN,HIGH);  
+
+  int x=resettime-12;
+  while(x>=24){
+  if(x>=24) x = x-24;
 }
+    rtc.set(0, 00, x, 6, 2, 5, 18);
+
+writeD1(x%10);
+writeD2((x/10)%10);
+amPM(true);
+sr.updateRegisters();
+}
+
 
 if((lastreading-5)>mapped) switch(steps){
     case 1: // display time twice
