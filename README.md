@@ -1,6 +1,6 @@
 # NixieClock
 
-This is the code to run the nixie watch. Not licensing it as it's all terrible code and mostly runs off of other peoples libraries anyways...
+This is the code to run the nixie watch. 
 
 Hardware:
 
