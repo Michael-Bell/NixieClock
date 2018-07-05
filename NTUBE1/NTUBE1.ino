@@ -174,15 +174,26 @@ strip.sendPixels(numPixels, pixels);
 delay(750);
  sr.updateRegisters();
 
+rtc.refresh();
+if(rtc.hour()<18){
+rtc.set();
+}
+  rtc.set(0, 00, 12, 6, 2, 5, 18);
+  //  RTCLib::set(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 
 }
+
+
+
+
+
 int avProx=0;
 int lastreading = 0;
 
 
 int mapped;
 int steps=0;
-
+int resettime=0;
 void loop() {
 
 apds.readProximity(proximity_data);
@@ -191,8 +202,11 @@ int r,g,b;
 r=0;g=0;b=0;
 mapped = map(proximity_data,0,255,0,10);
 
-if(mapped==10) steps++;
-
+if(mapped==10) {
+  steps++;
+resettime++;
+}
+else(resettime=0;)
 if (steps==4) steps=0;
 
 
@@ -213,6 +227,26 @@ switch(steps){ // set led color based on the step iteration
 updateColors(r,g,b);
 // Display the pixels on the LED strip
 strip.sendPixels(numPixels, pixels);
+
+if(resettime>12){
+  updateColors(255,255,0);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+delay(750);
+  updateColors(0,255,255);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+delay(750);
+  updateColors(255,0,255);
+// Display the pixels on the LED strip
+strip.sendPixels(numPixels, pixels);
+}
+if(resettime==24){
+  resettime=0;
+  steps=0;
+    rtc.set(0, 00, 12, 6, 2, 5, 18);
+tellTime(1);
+}
 
 if((lastreading-5)>mapped) switch(steps){
     case 1: // display time twice
